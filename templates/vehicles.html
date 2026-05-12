@@ -1,0 +1,151 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vehicles — CarvaX</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><a href="/" class="brand"><span>CarvaX</span></a></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a href="/dashboard" class="nav-item" data-path="/dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a href="/vehicles" class="nav-item active" data-path="/vehicles">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        Vehicles
+      </a>
+      <a href="/history" class="nav-item" data-path="/history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Booking History
+      </a>
+      <div class="nav-section-label admin-only">Admin</div>
+      <a href="/admin" class="nav-item admin-only">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Admin Panel
+      </a>
+      <a href="/vehicles/add" class="nav-item admin-only">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Add Vehicle
+      </a>
+      <div class="nav-section-label">Account</div>
+      <a href="/profile" class="nav-item" data-path="/profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profile
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar-avatar">U</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">...</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">Member</div>
+        </div>
+        <button id="logout-btn" title="Logout" style="background:none;border:none;cursor:pointer;color:var(--gray-500);padding:4px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <button class="sidebar-toggle" id="sidebar-toggle">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-title">Vehicles</span>
+      <div class="topbar-actions">
+        <div class="search-bar" style="width:240px;">
+          <input type="text" id="search-input" placeholder="Search vehicles...">
+          <button onclick="doSearch()">Search</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="page-content">
+      <div class="filter-bar">
+        <button class="filter-chip active" data-filter="available" onclick="setFilter('available', this)">Available</button>
+        <button class="filter-chip" data-filter="all" onclick="setFilter('all', this)">All</button>
+        <button class="filter-chip" data-filter="rented" onclick="setFilter('rented', this)">Rented</button>
+        <span style="margin-left:auto; font-size:0.8rem; color:var(--gray-400);" id="count-label"></span>
+      </div>
+
+      <div id="vehicles-container">
+        <div class="loading-center"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/main.js"></script>
+<script>
+  let currentFilter = 'available';
+
+  async function loadVehicles(status = 'available') {
+    const container = document.getElementById('vehicles-container');
+    container.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+    const res = await apiFetch(`/vehicles/?status=${status}`);
+    if (!res || !res.ok) {
+      container.innerHTML = '<p class="text-center text-muted mt-4">Failed to load vehicles.</p>';
+      return;
+    }
+    renderVehicles(res.data.vehicles);
+  }
+
+  function renderVehicles(vehicles) {
+    const container = document.getElementById('vehicles-container');
+    document.getElementById('count-label').textContent = `${vehicles.length} vehicle${vehicles.length !== 1 ? 's' : ''}`;
+    if (!vehicles.length) {
+      container.innerHTML = `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><h3>No vehicles found</h3><p>Try a different filter or search term</p></div>`;
+      return;
+    }
+
+    const isAdminUser = isAdmin();
+    container.innerHTML = `<div class="vehicles-grid">${vehicles.map(v => `
+      <div class="vehicle-card fade-in" onclick="window.location='/vehicles/${v.id}'">
+        <div class="vehicle-card-image">
+          <img src="${getVehicleImageUrl(v.image)}" alt="${v.name}" onerror="this.src='https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80'">
+        </div>
+        <div class="vehicle-card-body">
+          <div class="vehicle-card-title">${v.name}</div>
+          <div class="vehicle-card-subtitle">${v.brand} ${v.model} ${v.year || ''}</div>
+          <div class="vehicle-card-price">${formatCurrency(v.price_per_day)} <span>/ day</span></div>
+        </div>
+        <div class="vehicle-card-footer">
+          ${statusBadge(v.status)}
+          <div class="flex gap-2">
+            ${isAdminUser ? `<a href="/vehicles/edit/${v.id}" class="btn btn-secondary btn-sm" onclick="event.stopPropagation()">Edit</a>` : ''}
+            ${v.status === 'available' ? `<a href="/booking/${v.id}" class="btn btn-primary btn-sm" onclick="event.stopPropagation()">Book</a>` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('')}</div>`;
+  }
+
+  async function doSearch() {
+    const q = document.getElementById('search-input').value.trim();
+    if (!q) { loadVehicles(currentFilter); return; }
+    const res = await apiFetch(`/vehicles/search?q=${encodeURIComponent(q)}`);
+    if (res && res.ok) renderVehicles(res.data.vehicles);
+  }
+
+  function setFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    loadVehicles(filter);
+  }
+
+  document.getElementById('search-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+
+  loadVehicles();
+</script>
+</body>
+</html>

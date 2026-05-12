@@ -1,0 +1,124 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking History — CarvaX</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><a href="/" class="brand"><span>CarvaX</span></a></div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard" class="nav-item" data-path="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+      <a href="/vehicles" class="nav-item" data-path="/vehicles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Vehicles</a>
+      <a href="/history" class="nav-item active" data-path="/history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Booking History</a>
+      <div class="nav-section-label admin-only">Admin</div>
+      <a href="/admin" class="nav-item admin-only"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Admin Panel</a>
+      <div class="nav-section-label">Account</div>
+      <a href="/profile" class="nav-item" data-path="/profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar-avatar">U</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">...</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">Member</div>
+        </div>
+        <button id="logout-btn" title="Logout" style="background:none;border:none;cursor:pointer;color:var(--gray-500);padding:4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <button class="sidebar-toggle" id="sidebar-toggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <span class="topbar-title">Booking History</span>
+      <div class="topbar-actions">
+        <a href="/vehicles" class="btn btn-primary btn-sm">+ New Booking</a>
+      </div>
+    </header>
+
+    <div class="page-content">
+      <div class="filter-bar">
+        <button class="filter-chip active" onclick="filterBookings('all', this)">All</button>
+        <button class="filter-chip" onclick="filterBookings('active', this)">Active</button>
+        <button class="filter-chip" onclick="filterBookings('completed', this)">Completed</button>
+        <button class="filter-chip" onclick="filterBookings('cancelled', this)">Cancelled</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper" style="border:none;">
+          <div id="bookings-container"><div class="loading-center"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/main.js"></script>
+<script>
+  if (!requireAuth()) throw new Error('redirect');
+  let allBookings = [];
+  let currentFilter = 'all';
+
+  async function load() {
+    const res = await apiFetch('/bookings/history');
+    if (!res || !res.ok) return;
+    allBookings = res.data.bookings;
+    renderBookings();
+  }
+
+  function filterBookings(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    renderBookings();
+  }
+
+  function renderBookings() {
+    const filtered = currentFilter === 'all' ? allBookings : allBookings.filter(b => b.status === currentFilter);
+    const el = document.getElementById('bookings-container');
+
+    if (!filtered.length) {
+      el.innerHTML = `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><h3>No bookings found</h3><p><a href="/vehicles" class="btn btn-primary btn-sm mt-2">Browse Vehicles</a></p></div>`;
+      return;
+    }
+
+    el.innerHTML = `<table>
+      <thead><tr><th>#</th><th>Vehicle</th><th>Dates</th><th>Days</th><th>Amount</th><th>Status</th><th>Payment</th><th>Actions</th></tr></thead>
+      <tbody>${filtered.map(b => `
+        <tr>
+          <td class="text-muted">#${b.id}</td>
+          <td>
+            <div class="fw-bold">${b.vehicle?.name || '—'}</div>
+            <div class="text-xs text-muted">${b.vehicle?.brand} ${b.vehicle?.model}</div>
+          </td>
+          <td class="text-sm">${formatDate(b.start_date)} – ${formatDate(b.end_date)}</td>
+          <td>${b.total_days}</td>
+          <td class="fw-bold">${formatCurrency(b.total_amount)}</td>
+          <td>${statusBadge(b.status)}</td>
+          <td>${b.payment ? statusBadge(b.payment.payment_status) : '<span class="badge badge-warning">Unpaid</span>'}</td>
+          <td>
+            <div class="flex gap-2">
+              ${!b.payment ? `<a href="/payment/${b.id}" class="btn btn-primary btn-sm">Pay</a>` : `<a href="/payment/${b.id}" class="btn btn-secondary btn-sm">Invoice</a>`}
+              ${b.status === 'active' ? `<a href="/return/${b.id}" class="btn btn-secondary btn-sm">Return</a>` : ''}
+              ${b.status === 'active' || b.status === 'pending' ? `<button class="btn btn-danger btn-sm" onclick="cancelBooking(${b.id})">Cancel</button>` : ''}
+            </div>
+          </td>
+        </tr>
+      `).join('')}</tbody>
+    </table>`;
+  }
+
+  async function cancelBooking(id) {
+    if (!confirm('Cancel this booking?')) return;
+    const res = await apiFetch(`/bookings/cancel/${id}`, { method: 'PUT' });
+    if (res && res.ok) load();
+  }
+
+  load();
+</script>
+</body>
+</html>

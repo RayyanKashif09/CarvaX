@@ -1,0 +1,82 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up — CarvaX</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="auth-container">
+  <div class="auth-card fade-in">
+    <div class="auth-logo">
+      <a href="/" class="brand-name">CarvaX</a>
+    </div>
+    <h2 class="auth-title">Create an account</h2>
+    <p class="auth-subtitle">Start renting premium vehicles today</p>
+
+    <div id="alert" class="alert alert-hidden"></div>
+
+    <form id="signup-form">
+      <div class="form-group">
+        <label class="form-label">Full name</label>
+        <input type="text" id="name" class="form-control" placeholder="John Smith" required autofocus>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input type="email" id="email" class="form-control" placeholder="you@example.com" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone number</label>
+        <input type="tel" id="phone" class="form-control" placeholder="+1 (555) 000-0000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="password" class="form-control" placeholder="Min. 6 characters" required minlength="6">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn">
+        Create Account
+      </button>
+    </form>
+
+    <div class="auth-footer mt-3">
+      Already have an account? <a href="/login">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/main.js"></script>
+<script>
+  redirectIfLoggedIn();
+
+  document.getElementById('signup-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    const alert = document.getElementById('alert');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Creating account...';
+
+    const res = await apiFetch('/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: document.getElementById('name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        password: document.getElementById('password').value,
+      }),
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Create Account';
+
+    if (!res || !res.ok) {
+      showAlert(alert, res?.data?.error || 'Sign up failed. Please try again.');
+      return;
+    }
+
+    setAuth(res.data.token, res.data.user);
+    window.location.href = '/dashboard';
+  });
+</script>
+</body>
+</html>

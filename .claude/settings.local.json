@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem \"C:\\\\rent-car\" -Recurse | Where-Object {!$_.PSIsContainer} | Select-Object -ExpandProperty FullName | Sort-Object)",
+      "Bash(pip install *)",
+      "PowerShell(Start-Service *)"
+    ]
+  }
+}

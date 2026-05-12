@@ -1,0 +1,160 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Vehicle — CarvaX</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><a href="/" class="brand"><span>CarvaX</span></a></div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard" class="nav-item" data-path="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+      <a href="/vehicles" class="nav-item active" data-path="/vehicles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Vehicles</a>
+      <a href="/history" class="nav-item" data-path="/history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>History</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar-avatar">U</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">...</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">Member</div>
+        </div>
+        <button id="logout-btn" title="Logout" style="background:none;border:none;cursor:pointer;color:var(--gray-500);padding:4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <button class="sidebar-toggle" id="sidebar-toggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <span class="topbar-title">Book Vehicle</span>
+    </header>
+
+    <div class="page-content">
+      <div class="breadcrumb">
+        <a href="/vehicles">Vehicles</a>
+        <span class="sep">/</span>
+        <span class="current" id="breadcrumb-name">Book</span>
+      </div>
+
+      <div class="grid-2" style="align-items: start; max-width: 900px;">
+        <!-- Vehicle summary -->
+        <div class="card" id="vehicle-summary">
+          <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+
+        <!-- Booking form -->
+        <div class="card">
+          <div class="card-header"><h4 class="card-title">Rental Details</h4></div>
+          <div class="card-body">
+            <div id="alert" class="alert alert-hidden"></div>
+            <form id="booking-form">
+              <div class="form-group">
+                <label class="form-label">Pick-up Date *</label>
+                <input type="date" id="start_date" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Return Date *</label>
+                <input type="date" id="end_date" class="form-control" required>
+              </div>
+              <div id="price-summary" class="card" style="background: var(--gray-50); border: 1px solid var(--gray-200); padding: 16px; margin-bottom: 16px; display:none;">
+                <div class="flex-between mb-2"><span class="text-muted">Days</span><span id="calc-days" class="fw-bold">—</span></div>
+                <div class="flex-between mb-2"><span class="text-muted">Rate/day</span><span id="calc-rate" class="fw-bold">—</span></div>
+                <div style="border-top: 1px solid var(--gray-200); padding-top: 10px; margin-top: 4px;" class="flex-between"><span class="fw-bold">Total</span><span id="calc-total" class="fw-bold" style="font-size:1.2rem;">—</span></div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn">Confirm Booking</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/main.js"></script>
+<script>
+  if (!requireAuth()) throw new Error('redirect');
+  const vehicleId = {{ vehicle_id }};
+  let vehicle = null;
+
+  async function loadVehicle() {
+    const res = await apiFetch(`/vehicles/${vehicleId}`);
+    if (!res || !res.ok) { window.location.href = '/vehicles'; return; }
+    vehicle = res.data.vehicle;
+    document.getElementById('breadcrumb-name').textContent = vehicle.name;
+
+    document.getElementById('vehicle-summary').innerHTML = `
+      <div style="height:200px; overflow:hidden; border-radius: var(--radius) var(--radius) 0 0;">
+        <img src="${getVehicleImageUrl(vehicle.image)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80'">
+      </div>
+      <div class="card-body">
+        <h3>${vehicle.name}</h3>
+        <p class="text-muted text-sm">${vehicle.brand} ${vehicle.model} ${vehicle.year || ''} · ${vehicle.category}</p>
+        <div style="font-size:1.6rem; font-weight:900; letter-spacing:-0.04em; margin-top:12px;">
+          ${formatCurrency(vehicle.price_per_day)} <span style="font-size:0.9rem;font-weight:400;color:var(--gray-400);">/ day</span>
+        </div>
+        <div class="mt-3">${statusBadge(vehicle.status)}</div>
+      </div>
+    `;
+
+    if (vehicle.status !== 'available') {
+      document.getElementById('submit-btn').disabled = true;
+      document.getElementById('submit-btn').textContent = 'Vehicle Not Available';
+    }
+  }
+
+  // Today as min date
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('start_date').min = today;
+  document.getElementById('end_date').min = today;
+
+  function calcTotal() {
+    const s = document.getElementById('start_date').value;
+    const e = document.getElementById('end_date').value;
+    if (!s || !e || !vehicle) return;
+    const days = Math.ceil((new Date(e) - new Date(s)) / 86400000);
+    if (days <= 0) return;
+    const total = days * vehicle.price_per_day;
+    document.getElementById('calc-days').textContent = days;
+    document.getElementById('calc-rate').textContent = formatCurrency(vehicle.price_per_day);
+    document.getElementById('calc-total').textContent = formatCurrency(total);
+    document.getElementById('price-summary').style.display = '';
+  }
+
+  document.getElementById('start_date').addEventListener('change', calcTotal);
+  document.getElementById('end_date').addEventListener('change', calcTotal);
+
+  document.getElementById('booking-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    const alert = document.getElementById('alert');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Confirming...';
+
+    const res = await apiFetch('/bookings/create', {
+      method: 'POST',
+      body: JSON.stringify({
+        vehicle_id: vehicleId,
+        start_date: document.getElementById('start_date').value,
+        end_date: document.getElementById('end_date').value,
+      }),
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Confirm Booking';
+
+    if (res && res.ok) {
+      showAlert(alert, 'Booking confirmed! Redirecting to payment...', 'success');
+      setTimeout(() => window.location.href = `/payment/${res.data.booking.id}`, 1500);
+    } else {
+      showAlert(alert, res?.data?.error || 'Failed to create booking.');
+    }
+  });
+
+  loadVehicle();
+</script>
+</body>
+</html>

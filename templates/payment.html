@@ -1,0 +1,195 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment — CarvaX</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><a href="/" class="brand"><span>CarvaX</span></a></div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard" class="nav-item" data-path="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+      <a href="/vehicles" class="nav-item" data-path="/vehicles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Vehicles</a>
+      <a href="/history" class="nav-item" data-path="/history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>History</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar-avatar">U</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">...</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">Member</div>
+        </div>
+        <button id="logout-btn" title="Logout" style="background:none;border:none;cursor:pointer;color:var(--gray-500);padding:4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <button class="sidebar-toggle" id="sidebar-toggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <span class="topbar-title">Payment</span>
+    </header>
+
+    <div class="page-content">
+      <div id="content"><div class="loading-center"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/main.js"></script>
+<script>
+  if (!requireAuth()) throw new Error('redirect');
+  const bookingId = {{ booking_id }};
+
+  async function load() {
+    const res = await apiFetch(`/bookings/${bookingId}`);
+    if (!res || !res.ok) { window.location.href = '/dashboard'; return; }
+    const b = res.data.booking;
+    const user = getUser();
+
+    // If already paid, show invoice
+    if (b.payment && b.payment.payment_status === 'completed') {
+      showInvoice(b);
+      return;
+    }
+
+    document.getElementById('content').innerHTML = `
+      <div class="grid-2" style="max-width:900px; align-items:start;">
+        <div class="card invoice-card">
+          <div class="card-header"><h4 class="card-title">Order Summary</h4></div>
+          <div class="card-body">
+            <div class="flex-between mb-2">
+              <span class="text-muted">Vehicle</span>
+              <span class="fw-bold">${b.vehicle?.name}</span>
+            </div>
+            <div class="flex-between mb-2">
+              <span class="text-muted">Rental Period</span>
+              <span>${formatDate(b.start_date)} – ${formatDate(b.end_date)}</span>
+            </div>
+            <div class="flex-between mb-2">
+              <span class="text-muted">Duration</span>
+              <span>${b.total_days} day${b.total_days !== 1 ? 's' : ''}</span>
+            </div>
+            <div class="flex-between mb-2">
+              <span class="text-muted">Rate</span>
+              <span>${formatCurrency(b.vehicle?.price_per_day)}/day</span>
+            </div>
+            <div style="border-top:1px solid var(--gray-200); padding-top:12px; margin-top:8px;" class="flex-between">
+              <span class="fw-bold" style="font-size:1rem;">Total</span>
+              <span class="fw-bold" style="font-size:1.4rem;">${formatCurrency(b.total_amount)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h4 class="card-title">Payment Method</h4></div>
+          <div class="card-body">
+            <div id="alert" class="alert alert-hidden"></div>
+            <form id="payment-form">
+              <div class="form-group">
+                <label class="form-label">Select Payment Method</label>
+                <div style="display:grid; gap:8px;">
+                  <label style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);cursor:pointer;">
+                    <input type="radio" name="method" value="cash" checked style="accent-color:var(--black);">
+                    <span>Cash on Pickup</span>
+                  </label>
+                  <label style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);cursor:pointer;">
+                    <input type="radio" name="method" value="card" style="accent-color:var(--black);">
+                    <span>Debit / Credit Card</span>
+                  </label>
+                  <label style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);cursor:pointer;">
+                    <input type="radio" name="method" value="online" style="accent-color:var(--black);">
+                    <span>Online Transfer</span>
+                  </label>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn">
+                Pay ${formatCurrency(b.total_amount)}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('payment-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      const alert = document.getElementById('alert');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Processing...';
+
+      const method = document.querySelector('input[name="method"]:checked').value;
+      const res = await apiFetch('/payments/create', {
+        method: 'POST',
+        body: JSON.stringify({ booking_id: bookingId, payment_method: method }),
+      });
+
+      btn.disabled = false;
+
+      if (res && res.ok) {
+        load(); // reload to show invoice
+      } else {
+        btn.textContent = `Pay ${formatCurrency(b.total_amount)}`;
+        showAlert(alert, res?.data?.error || 'Payment failed.');
+      }
+    });
+  }
+
+  function showInvoice(b) {
+    document.getElementById('content').innerHTML = `
+      <div class="card invoice-card fade-in">
+        <div class="card-body" style="padding:32px;">
+          <div class="invoice-header">
+            <div class="invoice-from">
+              <h3>CarvaX</h3>
+              <p class="text-muted text-sm mt-1">Smart Vehicle Rental</p>
+            </div>
+            <div class="invoice-number">
+              <div class="num">INVOICE</div>
+              <div class="val">#${String(b.id).padStart(6, '0')}</div>
+              <div class="text-muted text-sm mt-1">${formatDate(b.payment?.created_at)}</div>
+            </div>
+          </div>
+
+          <div class="invoice-details">
+            <div>
+              <div class="invoice-detail-label">Billed To</div>
+              <div class="invoice-detail-value">${b.user?.name}</div>
+              <div class="text-muted text-sm">${b.user?.email}</div>
+            </div>
+            <div>
+              <div class="invoice-detail-label">Rental Period</div>
+              <div class="invoice-detail-value">${formatDate(b.start_date)} – ${formatDate(b.end_date)}</div>
+              <div class="text-muted text-sm">${b.total_days} day${b.total_days !== 1 ? 's' : ''}</div>
+            </div>
+          </div>
+
+          <div class="invoice-line">
+            <span>${b.vehicle?.name} (${b.vehicle?.brand} ${b.vehicle?.model})</span>
+            <span>${b.total_days} × ${formatCurrency(b.vehicle?.price_per_day)}</span>
+          </div>
+          <div class="invoice-total">
+            <span>Total</span>
+            <span>${formatCurrency(b.total_amount)}</span>
+          </div>
+
+          <div class="flex-between mt-4">
+            <div>${statusBadge(b.payment?.payment_status)} <span class="text-sm text-muted ml-1">${b.payment?.payment_method}</span></div>
+            <div class="flex gap-2">
+              <button onclick="window.print()" class="btn btn-secondary btn-sm">Print Invoice</button>
+              <a href="/dashboard" class="btn btn-primary btn-sm">Go to Dashboard</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  load();
+</script>
+</body>
+</html>

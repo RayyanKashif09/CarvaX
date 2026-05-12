@@ -1,0 +1,79 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — CarvaX</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="auth-container">
+  <div class="auth-card fade-in">
+    <div class="auth-logo">
+      <a href="/" class="brand-name">CarvaX</a>
+    </div>
+    <h2 class="auth-title">Welcome back</h2>
+    <p class="auth-subtitle">Sign in to your account to continue</p>
+
+    <div id="alert" class="alert alert-hidden"></div>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input type="email" id="email" class="form-control" placeholder="you@example.com" required autofocus>
+      </div>
+      <div class="form-group">
+        <div class="flex-between mb-1">
+          <label class="form-label" style="margin:0">Password</label>
+          <a href="/forgot-password" style="font-size:0.78rem; color: var(--gray-500);">Forgot password?</a>
+        </div>
+        <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn">
+        Sign In
+      </button>
+    </form>
+
+    <div class="auth-footer mt-3">
+      Don't have an account? <a href="/signup">Create one</a>
+    </div>
+
+    <div class="auth-footer mt-2" style="color: var(--gray-400); font-size: 0.78rem;">
+      Admin demo: admin@CarvaX.com / Admin@123
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/main.js"></script>
+<script>
+  redirectIfLoggedIn();
+
+  document.getElementById('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    const alert = document.getElementById('alert');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Signing in...';
+
+    const res = await apiFetch('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+      }),
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+
+    if (!res || !res.ok) {
+      showAlert(alert, res?.data?.error || 'Login failed. Please try again.');
+      return;
+    }
+
+    setAuth(res.data.token, res.data.user);
+    window.location.href = res.data.user.role === 'admin' ? '/admin' : '/dashboard';
+  });
+</script>
+</body>
+</html>

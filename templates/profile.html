@@ -1,0 +1,142 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — CarvaX</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><a href="/" class="brand"><span>CarvaX</span></a></div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard" class="nav-item" data-path="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+      <a href="/vehicles" class="nav-item" data-path="/vehicles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Vehicles</a>
+      <a href="/history" class="nav-item" data-path="/history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>History</a>
+      <div class="nav-section-label">Account</div>
+      <a href="/profile" class="nav-item active" data-path="/profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar-avatar">U</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">...</div>
+          <div class="sidebar-user-role" id="sidebar-user-role">Member</div>
+        </div>
+        <button id="logout-btn" title="Logout" style="background:none;border:none;cursor:pointer;color:var(--gray-500);padding:4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <button class="sidebar-toggle" id="sidebar-toggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <span class="topbar-title">My Profile</span>
+    </header>
+
+    <div class="page-content">
+      <div class="grid-2" style="max-width: 900px; align-items: start;">
+        <!-- Profile Info -->
+        <div class="card">
+          <div class="card-header"><h4 class="card-title">Account Details</h4></div>
+          <div class="card-body">
+            <div style="text-align:center; margin-bottom:24px;">
+              <div class="avatar" id="big-avatar" style="width:72px;height:72px;font-size:1.8rem;margin:0 auto 12px;">U</div>
+              <div class="fw-bold" id="profile-name" style="font-size:1.1rem;">—</div>
+              <div class="text-muted text-sm" id="profile-email">—</div>
+              <div class="mt-2" id="profile-role-badge"></div>
+            </div>
+            <div class="flex-between" style="padding: 10px 0; border-bottom: 1px solid var(--gray-100);">
+              <span class="text-muted text-sm">Member since</span>
+              <span class="text-sm fw-bold" id="profile-joined">—</span>
+            </div>
+            <div class="flex-between" style="padding: 10px 0;">
+              <span class="text-muted text-sm">Phone</span>
+              <span class="text-sm fw-bold" id="profile-phone">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Form -->
+        <div class="card">
+          <div class="card-header"><h4 class="card-title">Edit Profile</h4></div>
+          <div class="card-body">
+            <div id="alert" class="alert alert-hidden"></div>
+            <form id="profile-form">
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="f-name" class="form-control">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Phone</label>
+                <input type="tel" id="f-phone" class="form-control">
+              </div>
+              <div class="form-group">
+                <label class="form-label">New Password <span class="text-muted">(leave blank to keep current)</span></label>
+                <input type="password" id="f-password" class="form-control" placeholder="New password" minlength="6">
+              </div>
+              <button type="submit" class="btn btn-primary" id="submit-btn">Save Changes</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/main.js"></script>
+<script>
+  if (!requireAuth()) throw new Error('redirect');
+
+  async function loadProfile() {
+    const res = await apiFetch('/auth/me');
+    if (!res || !res.ok) return;
+    const u = res.data.user;
+
+    document.getElementById('big-avatar').textContent = u.name[0].toUpperCase();
+    document.getElementById('profile-name').textContent = u.name;
+    document.getElementById('profile-email').textContent = u.email;
+    document.getElementById('profile-joined').textContent = formatDate(u.created_at);
+    document.getElementById('profile-phone').textContent = u.phone || '—';
+    document.getElementById('profile-role-badge').innerHTML = statusBadge(u.role === 'admin' ? 'active' : 'pending') + ` <span class="text-xs">${u.role}</span>`;
+
+    document.getElementById('f-name').value = u.name;
+    document.getElementById('f-phone').value = u.phone || '';
+  }
+
+  document.getElementById('profile-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    const alert = document.getElementById('alert');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Saving...';
+
+    const body = {
+      name: document.getElementById('f-name').value.trim(),
+      phone: document.getElementById('f-phone').value.trim(),
+    };
+    const pw = document.getElementById('f-password').value;
+    if (pw) body.password = pw;
+
+    const res = await apiFetch('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+
+    if (res && res.ok) {
+      localStorage.setItem('CarvaX_user', JSON.stringify(res.data.user));
+      showAlert(alert, 'Profile updated successfully!', 'success');
+      loadProfile();
+    } else {
+      showAlert(alert, res?.data?.error || 'Failed to update profile.');
+    }
+  });
+
+  loadProfile();
+</script>
+</body>
+</html>

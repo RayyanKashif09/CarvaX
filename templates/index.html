@@ -1,0 +1,120 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CarvaX — Smart Vehicle Rental</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<nav class="landing-nav">
+  <div class="brand">CarvaX</div>
+  <div class="landing-nav-links">
+    <a href="/vehicles" class="btn btn-secondary btn-sm">Browse Cars</a>
+    <a href="/login" class="btn btn-secondary btn-sm">Login</a>
+    <a href="/signup" class="btn btn-primary btn-sm">Get Started</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <h1>Drive Your Dream Vehicle Today</h1>
+  <p>Premium vehicle rentals made simple. Choose from our curated fleet and get on the road in minutes.</p>
+  <div class="hero-actions">
+    <a href="/vehicles" class="btn btn-hero-primary">Browse Vehicles</a>
+    <a href="/signup" class="btn btn-hero-secondary">Create Account</a>
+  </div>
+</section>
+
+<section class="section" style="background: var(--white);">
+  <div style="max-width: 1100px; margin: 0 auto;">
+    <p class="text-center text-muted text-sm mb-2" style="text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">Why Choose CarvaX</p>
+    <h2 class="section-title text-center">Everything you need in one platform</h2>
+    <p class="section-sub text-center">Built for modern renters who value simplicity, transparency, and speed.</p>
+    <div class="features-grid">
+      <div class="feature-card fade-in">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>Secure Booking</h3>
+        <p>JWT-protected accounts with secure password handling and role-based access.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        </div>
+        <h3>Wide Fleet</h3>
+        <p>Sedans, SUVs, sports cars and more — all maintained and ready to go.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <h3>Real-time Dashboard</h3>
+        <p>Track bookings, payments, and rental history from a clean admin dashboard.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <h3>Transparent Pricing</h3>
+        <p>No hidden fees. See the total cost before you confirm your booking.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Featured Vehicles -->
+<section class="section" style="background: var(--gray-50);">
+  <div style="max-width: 1100px; margin: 0 auto;">
+    <h2 class="section-title">Featured Vehicles</h2>
+    <p class="section-sub">Handpicked from our premium fleet</p>
+    <div class="vehicles-grid" id="featured-vehicles">
+      <div class="loading-center"><div class="spinner"></div></div>
+    </div>
+    <div class="text-center mt-4">
+      <a href="/vehicles" class="btn btn-primary btn-lg">View All Vehicles</a>
+    </div>
+  </div>
+</section>
+
+<footer style="background: var(--black); color: var(--white); padding: 40px; text-align: center;">
+  <div class="brand" style="font-size: 1.4rem; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 12px;">CarvaX</div>
+  <p style="color: var(--gray-500); font-size: 0.875rem;">Smart Vehicle Rental Management System &copy; 2025</p>
+</footer>
+
+<script src="/static/js/main.js"></script>
+<script>
+  async function loadFeatured() {
+    const container = document.getElementById('featured-vehicles');
+    const res = await apiFetch('/vehicles/?status=available');
+    if (!res || !res.ok) {
+      container.innerHTML = '<p class="text-center text-muted">Could not load vehicles.</p>';
+      return;
+    }
+    const vehicles = res.data.vehicles.slice(0, 3);
+    if (!vehicles.length) {
+      container.innerHTML = '<p class="text-center text-muted">No vehicles available right now.</p>';
+      return;
+    }
+    container.innerHTML = vehicles.map(v => `
+      <a href="/vehicles/${v.id}" class="vehicle-card fade-in" style="display:block;">
+        <div class="vehicle-card-image">
+          <img src="${getVehicleImageUrl(v.image)}" alt="${v.name}" onerror="this.src='https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80'">
+        </div>
+        <div class="vehicle-card-body">
+          <div class="vehicle-card-title">${v.name}</div>
+          <div class="vehicle-card-subtitle">${v.brand} ${v.model} ${v.year || ''}</div>
+          <div class="vehicle-card-price">${formatCurrency(v.price_per_day)} <span>/ day</span></div>
+        </div>
+        <div class="vehicle-card-footer">
+          ${statusBadge(v.status)}
+          <span class="badge badge-gray">${v.category}</span>
+        </div>
+      </a>
+    `).join('');
+  }
+  loadFeatured();
+</script>
+</body>
+</html>
